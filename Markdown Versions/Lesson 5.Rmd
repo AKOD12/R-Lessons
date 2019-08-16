@@ -1,0 +1,158 @@
+---
+title: "Lesson 5"
+author: "Ankith Kodali"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Advanced Visualization with ggplot##
+In this lesson, we get more advanced with data visualization with the package `ggplot2` which is containted within the tidyverse. As a quick review, the ggplot function does visualization using multiple components: data, aesthetic mappings, and geometric objects. These components are then added together (or layered) to produce the final graph. 
+
+In this lesson we are going to use a diving dataset to observe how scores vary by judges from certain countries (I don't really know much about diving but it's for this lesson). Let's load in our dataset.
+
+```{r echo=TRUE}
+library(tidyverse)
+dive <- read_csv("C:/Users/ankit/OneDrive/Desktop/Robotics Scouting/Data Sets/bias_diving.csv")
+```
+
+The first thing to do is tell ggplot what data will be used in graphing. This is done using the call to ggplot below. We save our graph as histo which we will then add layers.
+
+```{r echo=TRUE}
+histo <- ggplot(data = dive)
+```
+
+The second layer we add is with aesthetics which map data to properties of whatever you want to plot. As seen before we use `aes()` and add some of the following things:
+
+`x`: the variable that will be on the x-axis
+
+`y`: the variable that will be on the y-axis
+
+`color`: the variable that categorizes data by color
+
+`shape`: the variable that categorizes data by shape
+
+The third layer we add is the geometric object in which we use the `geom_` for graphs such as:
+
+Geometric objects, or geoms, determine the type of plot that will be created. Examples include:
+
+`geom_point()`: create a scatterplot
+
+`geom_histogram()`: create a histogram
+
+`geom_line()`: create a line
+
+`geom_boxplot()`: create a boxplot
+
+Putting the three layers together we get a histogram  specified with the data we wanted.
+```{r echo=TRUE}
+histo <- histo + geom_histogram(aes(x = JScore), binwidth = 0.25)
+histo
+```
+
+Now if we want to change the label from JSCore:
+
+```{r echo=TRUE}
+histo <- histo + labs(x = "Judge Scores")
+histo
+```
+
+###Facets###
+If we wanted to see a graph of scores based of countries we could do it in one line of code rather than specifying every country in a bunch of lines using what are called facets. Facets allow you to separate graphs by category. Let's add a facet to the data we have.
+
+```{r echo=TRUE}
+histo <- histo + facet_wrap(~ JCountry, nrow = 4)
+histo
+```
+
+**You must have the `~` when using a facet wrap, just a syntax thing to get used to**
+
+If we wanted to see how skewed the data is in comparison to the median of all scores we could plot the median on top of the plot we have with `geom_vline()` which will add a vertical line over wherever we specify.
+
+```{r echo=TRUE}
+median<- median(dive[["JScore"]])
+histo <- histo + geom_vline(xintercept = median, color = "blue")
+histo
+```
+
+**Create your own facet wrap using a different category (not country)**
+
+###Boxplots###
+A boxplot is another visualization tool. We can now make boxplots of the judges scores separated by diving round. Here we use the aes property `fill = Round` to color (or "fill") the boxplots by round.
+
+```{r echo=TRUE}
+bp <- ggplot(data = dive)
+bp <- bp + geom_boxplot(aes(x = Round, y = JScore, fill = Round))
+bp <- bp + labs(title = "Scores by Round", x = "", y = "Judge Score", fill = "Round")
+bp
+```
+
+Let's also get rid of the redundant labels on the X-Axis
+
+```{r echo=TRUE}
+bp <- bp + theme(axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
+bp
+```
+
+###Barplots###
+Using `geom_bar()` we can create a bar chart. 
+
+```{r echo=TRUE}
+bp <- ggplot(data = dive)
+bp <- bp + geom_bar(aes(x = JCountry, fill = JCountry))
+bp <- bp + labs(x = "Judge Country", fill = "Judge Country")
+bp
+```
+
+Notice that the fill automatically fills in a color and corresponds it with a country.
+
+###Scatterplots### 
+Let's go back to scatterplots. We can plot the rank of divers versus the judge scores. The higher the divers rank, the higher their score.
+
+```{r echo=TRUE}
+scat <- ggplot(data = dive)
+scat <- scat + geom_point(aes(x = Rank, y = JScore, color = Country))
+scat
+```
+
+###Statistics###
+We can also add another layer using `stat_`, which is for statistical transformation. This is useful if we want to plot a summary statistic of our data, such as a mean or median. By using a stat_ layer, we do not have to so any summaries beforehand as ggplot does it automoatically
+
+If we want to plot means of each judge's score one standard deviation (+/-). We could use `summarize` and `group_by` to find the mean and standard deviations for each judge, or we could just use a stat_ layer!
+
+The layer `stat_summary()` computes and plots a summary statistic. We can use the function `mean_se` to calculate the means and standard deviations of the scores of each judge.
+
+Let's add a `stat_summary()` layer
+
+```{r echo=TRUE}
+judge <- ggplot(data = dive, aes(x = Judge, y = JScore))
+judge <- judge + stat_summary(fun.data = mean_se)
+judge <- judge + labs(y = "Judge Score")
+judge
+```
+
+As you can see you can not read a single name but we can fix that easily using `coord_flip()`
+
+```{r echo=TRUE}
+judge <- judge + coord_flip()
+judge
+```
+
+###Scales###
+Scales allow adjustment of asethetics. We will use the scatter plot of the judges' scores vs rank of the divers. This time, we want to color the points by the difficulty of the dive.
+
+We use the layer: `scale_color_distiller`
+
+Above, the second word, color, is the aes we want to change. We can replace it with x, y or fill, depending on the aes we want to change.
+
+The third word is distiller, which we use because our color variable, Difficulty, is continuous. 
+
+```{r echo=TRUE}
+scat <- ggplot(data = dive)
+scat <- scat + geom_point(aes(x = Rank, y = JScore, color = Difficulty))
+scat <- scat + scale_color_distiller(palette = "OrRd", direction = 1)
+scat
+```
+

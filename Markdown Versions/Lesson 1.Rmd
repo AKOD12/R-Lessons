@@ -1,0 +1,111 @@
+---
+title: "Lesson 1"
+author: "Ankith Kodali"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+R Download-https://cloud.r-project.org/
+R Script Download-https://www.rstudio.com/products/rstudio/download/#download
+
+Download these datasets for lessons(Open in New Tab)- https://drive.google.com/drive/folders/13AJY5Z1j1Uq1pCsgjXDxghBy8-z9pMWI?usp=sharing
+
+Please download R Studio **Desktop**
+
+I like to use sports data not only because I like it, but also its some of the most readily available data in terms of numbers and generally easy to understand. Just ask me if you have any questions about anything covered here.
+
+field goal makes (FGM),
+field goal attempts (FGA),
+three point makes (TPM),
+three point attempts (TPA),
+free throw makes (FTM),
+free throw attempts (FTA),
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+tibble::tribble(
+               ~PLAYER, ~FGM,  ~FGA, ~TPM, ~TPA, ~FTM, ~FTA,
+       "Ray Allen", 804, 1596, 401, 877, 362, 390,
+           "Gary Payton", 571, 1341, 118, 328, 278, 348,
+        "Shawn Kemp", 470, 1033,  63, 270, 397, 477,
+        "Mitch Richmond", 710, 1617, 236, 657, 720, 837,
+        "Rick Barry", 698, 1381, 186, 480, 447, 498,
+        "Oscar Robertson", 737, 1416,  87, 282, 359, 491,
+  "Hakeem Olajuwon", 498, 1112, 126, 342, 250, 280,
+       "Vince Carter", 373,  886,  81, 243, 201, 240,
+          "Moses Malone", 215,  442,   0,   2,  92, 131,
+      "Patrick Ewing", 552, 1061,   2,   6, 208, 586
+  )
+```
+##Vectors
+
+How could we load this data into R? Vectors!
+The fundamental unit of data storage in R is a **vector**, which is just an ordered collection of data. We can input each column in the above table as a vector. Vectors allow us to do multiple calculations on the same group of data.
+
+```{r echo=TRUE,message=FALSE, warning=FALSE}
+fgm <-c(804, 571, 470, 710, 698, 737, 498, 373, 215, 552)
+fgm
+```
+```{r echo=FALSE,message=FALSE, warning=FALSE}
+fga<-c(1596,1341,1033,1617,1381,1416,1112,886,442,1061)
+```
+Practice-Create these vectors for all other categories.
+
+In R, vectors don't have to always be numbers. They can be letters and words also known as strings and characters. Here is an example of creating vectors with player names. Vectors must contain only characters or only numbers.
+
+```{r echo=TRUE,message=FALSE, warning=FALSE}
+players <- c("Ray Allen", "Gary Payton", "Shawn Kemp", "Mitch Richmond", "Rick Barry", "Oscar Robertson", "Hakeem Olajuwon", "Vince Carter", "Moses Malone", "Patrick Ewing")
+players
+```
+We know that the first element of the vector fgm is Ray Allen's FGM. When we print fgm for instance, R does not tell us which values correspond to which players.
+```{r echo=TRUE,message=FALSE,warning=FALSE}
+fgm
+```
+As we proceed with our analysis, it'll be useful to have named the elements of the vector. We can do that with the names() function.
+When we use names(), we put the vector whose elements we want to name in the parantheses and on the right-hand side of the <- we put a character vector of the same length as the vector we want to name containing the element names. In the example above, we set the names of  fgm to be the elements of the vector players.
+```{r echo=TRUE,message=FALSE,warning=FALSE}
+names(fgm) <- players
+fgm
+```
+Practice-Name the rest of the categories so that they correspond
+
+##Vector Math
+Vector math is something relatively simple in R, for now it is just taking your variable name and manipulating it like below.
+```{r echo=TRUE,message=FALSE,warning=FALSE}
+fgm+2
+fgm-11
+fgm/3
+fgm*2
+fgm^2
+```
+Now if we wanted to make a category for Field Goal Percentage (Shot percenatage) we could just do vector math with the variables we have which our fgm and fga.
+```{r echo=TRUE}
+fgp<-fgm/fga
+fgp
+```
+Now try this with TPP(Three Point Percentage) and FTP(Free Throw Percentage)
+
+R can also do some very basic statistics calculations with certain headers.
+```{r echo=TRUE}
+sum(fgm)
+mean(fgm)
+median(fgm)
+min(fgm)
+max(fgm)
+sd(fgm)
+range(fgm)
+sort(fgm)
+quantile(fgm)
+summary(fgm)
+```
+If we wanted to just observe the data of certain players we could do what is called **subsetting** which lets us take specific parts of a vector by position. 
+```{r echo=TRUE}
+fgp[4]
+fgp[8]
+```
+With subsetting, try changing the value of Hakeem Olajuwon's fgm to 503.
+
+##More Practice
+Field Goal Percentage is a good statistic but has some flaws with it as it does not take into account the difficulty invoved with three pointers. We can create a statistic known as Effective Field Goal Percentage (efgp) which is calculated as efgp=(fgm+tpm*0.5)/fga. Try doing this yourself.
+
+Once you do Effective Field Goal Percentage try working with True Shooting Percentage (TSP) to account for free throws. TSP=Points/(2*(fga+0.44*FTA)). You will need to also create a points category yourself, PTS=FTM+2×FGM+TPM.

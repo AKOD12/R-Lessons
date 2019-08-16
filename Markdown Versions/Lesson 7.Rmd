@@ -1,0 +1,180 @@
+---
+title: "Linear Regression"
+author: "Ankith Kodali"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In this lesson we will use the dataset we used in lesson 6 so let's load it in.
+
+```{r echo=TRUE}
+library(tidyverse)
+ba_2014_2015 <- read_csv("C:/Users/ankit/OneDrive/Desktop/Robotics Scouting/Data Sets/ba_2014_2015.csv")
+```
+
+```{r echo=TRUE}
+ba <- ggplot(data = ba_2014_2015)
+ ba <- ba + geom_point(aes(x = ba_2014, y = ba_2015))
+ ba <- ba + labs(x = "2014 Batting Average", y = "2015 Batting Average")
+ ba
+```
+
+###Correlation###
+
+We can see a positive trend between the 2014 and 2015 batting averages. We can also quantify this positive trend.
+
+The correlation coefficient, r, is one way to summarize the dependence between two seasons with one number. r is a standardized measure of the linear dependence between two variables (usually called xhat and yhat) and can take values between -1 and +1.
+
+If r=1, then the points all lie on a line with positive slope. If r=???1, the points all lie on a line with negative slope.
+
+We can calculate the correlation between two variables in R using the function `cor()`. Let's calculate the correlation of the 2014 and 2015 data.
+
+```{r echo=TRUE}
+cor(ba_2014_2015[["ba_2014"]], ba_2014_2015[["ba_2015"]])
+```
+
+We have a decent amount of correlation between 2014 and 2015 season batting averages, but there is still a lot of clutter.
+
+It is important to remember that correlation is only a measure of **linear dependence** between two variables. For example y=$x^{2}$ has a r coefficient of -0.1 even though x and y are dependent.
+
+Returning to the 2014 and 2015 batting data. To visualize our correlation, we draw the line of best fit through our data. In this example, the line of best fit has y-intercept = 0.141 and slope = 0.485 (we will go through how to get this later).
+
+```{r echo=TRUE}
+ba <- ba + geom_abline(intercept = 0.141, slope = 0.485, color = "red")
+ba <- ba + labs(title = "y = 0.141 + 0.485x")
+ba
+```
+
+###The Regression Method###
+The correlation is the slope of the line of best fit:
+
+####(y-$\overline{y}$)/$\sigma$ = r*((x-$\overline{x}$)/$\sigma(y)$)
+
+We can unpack this equation to get the formula for our unstandardized line of best fit:
+
+y=a+bx
+
+####a=($\overline{y}$) - b*($\overline{x}$) and 
+b=r*($\sigma(y)$/$\sigma(x)$)
+
+Now that we have our regression line, we can predict a future y value given we know x. For example, if we know that a player's 2014 batting average was 0.31, we predict that their 2015 batting average will be:
+
+####$\hat{y}$=0.141+0.485×0.31=0.291
+
+###Fitting Linear Models###
+
+To find the regression coefficients, a and b, we use the function lm(). The usage of lm() is as follows:
+
+```{r echo=TRUE}
+ba_fit <- lm(ba_2015 ~ ba_2014, data = ba_2014_2015)
+```
+
+The first argument in the `lm()` call is called a formula. This takes input `y ~ x`, where y is our response variable and x is our predictor variable or covariate. In the `lm()` call above, the column ba_2015 is our response and ba_2014 is our predictor.
+
+The second argument in `lm()` is where we specifiy our data: ba_2014_2015. R then looks for at columns ba_2014 and ba_2015 in the dataset to calculate the regression coefficients.
+
+Our new object, ba_fit, contains a lot of information about our regression line. For now we just want the coefficients. We can access the coefficients as follows:
+
+```{r echo=TRUE}
+ba_fit[["coefficients"]]
+```
+
+###The modelr Package###
+
+`modelr` is another one of the packages included in the tidyverse. It has many functions useful for linear regression.
+
+```{r echo=TRUE}
+library(modelr)
+```
+
+We can use the function `rsquare` to get the square of the correlation, $r^{2}$. The quantity $r^{2}$ is the proportion of variance seen in the model. The first argument of the rsquare function is the output fit from our linear model function `lm()`. The second argument is our original dataset, `ba_2014_2015`:
+
+```{r echo=TRUE}
+rsquare(ba_fit, ba_2014_2015)
+```
+
+In fact we could also calculate RMSE and MAE (Mean Absolute Error)
+
+```{r echo=TRUE}
+rmse(ba_fit,ba_2014_2015)
+mae(ba_fit,ba_2014_2015)
+```
+
+`modelr`can also be used to add predictions and residuals to our original dataset:
+
+```{r echo=TRUE}
+ba_2014_2015 <- ba_2014_2015 %>% 
+   add_predictions(ba_fit) %>%
+   add_residuals(ba_fit)
+ba_2014_2015
+```
+
+Using these new columns, we can create a plot with residual lengths:
+
+```{r echo=TRUE}
+ba <- ggplot(ba_2014_2015)
+ba <- ba + geom_segment(aes(x =  ba_2014, xend = ba_2014, y = ba_2015, yend = pred), color = "dark blue")
+ba <- ba + geom_point(aes(x = ba_2014, y = ba_2015))
+ba <- ba + geom_abline(intercept = 0.1409779, slope = 0.4851417, color = "red")
+ba
+```
+
+We have looked at the predicted values from our **training** data, the data we used to fit our linear model. Let's say we have more players' batting averages from 2014 but we do not have their batting averages from 2015. We can use our linear model to predict these players' 2015 batting average using the function `predict`.
+
+In the below code, we enter the players' 2014 batting averages as the tibble new_data. We then use the function `predict`. The first argument of predict is the fitted model, fit. The second argument is new_data. Let's use the 2014 batting averages of Ryan Braun, Josh Hamilton, and Mike Moustakas.
+
+```{r echo=TRUE}
+new_data <- tibble(ba_2014 = c(0.266, 0.263, 0.212))
+new_pred <- predict(ba_fit, new_data)
+new_pred
+```
+
+We can also add these predictions to new_data using `add_predictions`
+
+```{r echo=TRUE}
+new_data <- new_data %>%
+   add_predictions(ba_fit)
+new_data
+```
+
+We can also add these predictions to the plot:
+
+```{r echo=TRUE}
+ba <- ggplot(ba_2014_2015)
+ba <- ba + geom_point(aes(x = ba_2014, y = ba_2015))
+ba <- ba + geom_abline(intercept = 0.1409779, slope = 0.4851417, color = "red")
+ba <- ba + geom_point(data = new_data, mapping = aes(x = ba_2014, y = pred), color = "dodgerblue")
+ba
+```
+
+In the above code, we drew our fitted line using our coefficients from `ba_fit` and `geom_abline` to specifiy the slope and the intercept. An different way to plot our fitted line is to use the function `data_grid`. This function creates a grid of evenly spaced points over the range of our x data.
+
+```{r echo=TRUE}
+ba_grid <- ba_2014_2015 %>%
+data_grid(ba_2014)
+ba_grid
+```
+
+We can then add our predicted values at these grid points using `add_predictions` and our linear model, `ba_fit`.
+
+```{r echo=TRUE}
+ba_grid <- ba_grid %>%
+add_predictions(ba_fit)
+```
+
+Using this grid dataset, we can add a `geom_line` over our scatter plot of 2014 vs 2015 batting averages. This just "connects the dots" between the points in grid.
+
+```{r echo=TRUE}
+ggplot(data = ba_2014_2015) +
+   geom_point(aes(x = ba_2014, y = ba_2015)) +
+   geom_line(data = ba_grid, aes(x = ba_2014, y = pred), color = "red")
+```
+
+Why should you use `data_grid` instead of just `geom_abline`? The real benefit of using `data_grid` is when you want to visualize a more complicated model for which there is no `geom`, like a logistical model.
+
+
+
+

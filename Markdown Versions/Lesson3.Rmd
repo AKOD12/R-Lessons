@@ -1,0 +1,177 @@
+---
+title: "Lesson 3"
+author: "Ankith Kodali"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Pulling Data##
+
+We are going to make use of the dpylr() library throughout this lesson which is already pre-loaded into the tidyverse. The dpylr library contains five main function that have the following purposes:
+
+
+
+Order the rows however you want using `arrange()`
+
+Pull only certain data using `filter()`
+
+Make new variables by using other already known variables using `mutate()`
+
+Select a group of variables by name using `select()`
+
+Getting basic summaries of the data using `summarise()`
+
+```{r echo=TRUE}
+library(tidyverse)
+shooting<-read_csv(file="C:/Users/ankit/OneDrive/Desktop/Robotics Scouting/Data Sets/nba_history.csv")
+```
+
+###Arranging Data###
+The `arrange()` function takes the data from the tibble and the column names sorts data according tho the values in the columns we specify.
+
+```{r echo=TRUE}
+arrange(shooting,FGM)
+```
+What happened here was our dataset, shooting, was arranged from least to greatest by FGM and we see many players with 0 FGM. You will also notice that you cannot see the full ammount of entries as only a certain dimension of the tibble is shown. If we wanted to View the whole shooting tibble arranged we could use the `View()` function to see our full tibble. 
+```{r echo=TRUE}
+View(arrange(shooting,FGM))
+```
+If you ever want to view the full tibble at anytime just use the `View()` function. **Always have capital V in View()**
+
+
+We can do the exact same thing but in descending order with the simple `desc()` function.
+
+```{r echo=TRUE}
+arrange(shooting, desc(FGM))
+```
+
+We could even sort more than 1 column at once as shown below:
+
+```{r echo=TRUE}
+arrange(shooting, FGM, FGA, TPM, TPA)
+```
+
+
+###Filtering Data###
+We can see from the arrange that there are a bunch of players who pretty much have done nothing and when we want to do meaningful things with datasets those useless numbers don't help us. We can make use of the `filter()` function to pull specific subsets of data to satisfy the logic statement we choose such as FGM>500 or TPA<=100.
+
+There are a variety of logical operators to help us make comparison:
+
+`==` used for saying equal to
+
+`!=` used for not equal to
+
+`<` and `<=` used for less than and less than or equal to respectively
+
+`>` and `>=` used for greater than and greater than or equal to respectively
+
+`&`, `|`, `!` used for AND, OR, NOT respectively
+
+
+Let's filter the data by only players who have made more than 100 Three Pointers
+
+```{r echo=TRUE}
+filter(shooting, TPM>100)
+```
+
+Notice how the size of the tibble went down from 7447 players to 910 players. 
+
+If were to view our shooting tibble we would see that it still contains all 7447 players, in order to make a seperate tibble for our `TPM>100` condition we just assign it another name. 
+
+```{r echo=TRUE}
+tpm_shooting<-filter(shooting, TPM>100)
+arrange(tpm_shooting,FGM)
+```
+
+Now let's try filtering the data by `TPM>100` or `FGM>300`
+
+```{r echo=TRUE}
+filter(shooting,TPM>100|FGM>300)
+```
+
+We can have multiple logical statements in one line rather than multiple by using parentheses:
+
+```{r echo=TRUE}
+filter(shooting, (TPM>100 & FGM>300) | (TPP >= 0.40 & FGP>=0.45))
+```
+
+In 1999 and 2012 the NBA had a lockout which shortened the seasons which may make our data bad. We can remove the data from those seasons in a quick way using the operator `%in%` which lets us select multiple things at once rather than saying `SEASON==` for every season we don't want.
+
+```{r echo=TRUE}
+filter(shooting, !SEASON %in% c(1999, 2012))
+```
+
+For the rest of this lesson let's only focus on players who attempted at least 150 field goals, 200 free throws, and 75 three pointers non-lockout seasons and 2015 because I hate the Golden State Warriors.
+
+```{r echo=TRUE}
+new_shooting <- filter(shooting, FGA >= 150 & FTA >= 200 & TPA >= 75 & !SEASON %in% c(1999, 2012, 2015))
+new_shooting
+```
+
+###Making New Variables Using Old Vairables###
+
+We have our new table but we realize that we don't have some other statistics we want such as Effective Field Goal Percentage, Total Points, and True Shooting Percentage. The `mutate()` function allows us to do this by creating a new variable using old variables. Let's overwrite our current `new_shooting` to add EFGP.
+
+```{r echo=TRUE}
+new_shooting<-mutate(new_shooting, EFGP = (FGM + 0.5 * TPM)/FGA)
+new_shooting
+```
+
+You can also add the other two categories yourself with the given formulas:
+
+PTS=FTM+2*FGM+TPM
+
+TSP=PTS/(2*(FGA+0.44*FTA))
+
+```{r echo=FALSE}
+new_shooting <- mutate(new_shooting, EFGP = (FGM + 0.5*TPM)/FGA,PTS = FTM + 2*FGM + TPM,TSP = PTS/(2 * (FGA + 0.44 * FTA)))
+```
+
+###Creating Categorical Variables###
+
+We have used `mutate()` to create **numeric** variables. If we wanted to assign qualitative categories such as bad or good to the players performance we wouldn't be able to use only mutate, instead we could the `case_when()` command which lets us categorize however we choose as shown below. Let's assign the following categories to player's Three Point Percentages.
+
+Garabge: TPP < 20%
+
+Better Garbage: 20% <= TPP < 30%
+
+Fine: 30% <= TPP < 35%
+
+Pretty Good: 35% < TPP < 40%
+
+Godly: TPP > 40%
+
+```{r echo=TRUE}
+new_shooting <- mutate(new_shooting, 
+                       TPPTier= case_when(
+                          TPP < 0.2 ~  "Garbage",
+                          0.2 <= TPP & TPP < 0.3 ~ "Better Garbage",
+                          0.3 <= TPP & TPP < 0.35 ~  "Fine",
+                         0.35 <= TPP & TPP < 0.4 ~ "Pretty Good",
+                         0.4 <= TPP ~ "Godly"))
+View(new_shooting)
+```
+
+You can see that R created tiers for each player based on their Three Point Percentages.
+
+###Column Summaries###
+If we want to find the average Three Point Percentage for the 2004 season it is pretty simple. We can use some the functions we learned in previous lessons.
+
+```{r echo=TRUE}
+new_shooting_2004 <- filter(shooting, SEASON == 2004)
+summarise(new_shooting_2004, TPP = mean(TPP))
+```
+
+We caould do that for multiple categories if we wanted which you could try out yourself.
+
+###Selecting Variables###
+We have a lot of columns here and we may not care about some of them. To look at only certain columns we can use the `select()` function which does exactly what it says, selects certain columns.
+
+```{r echo=TRUE}
+new_shooting_tpptier<-select(new_shooting, PLAYER, SEASON,TPP,TPPTier)
+new_shooting_tpptier
+```
+

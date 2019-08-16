@@ -1,0 +1,129 @@
+---
+title: "Lesson 2"
+author: "Ankith Kodali"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##The Tidyverse
+In the last lesson we did a lot of basic R calculations but now we can get more advanced with the use of libraries. The library known as the **tidyverse** which contains a variety of packages all under this one. Lets load the tidyverse package. We only need to install the package once but when we want to load it we will need to use the library command. You may need to use install.packages("tidyverse") before we load the library.
+```{r echo=TRUE}
+library(tidyverse)
+```
+We can see all the different packages that tidyverse downloads all together and we will make use of these as we progress. Don't worry about the warnings and conflicts.
+
+##Tibbles
+As we come upon data that is more expansive it becomes beneficial to have it all in tablular form. In the tidyverse, the standard way to work with tabular data is to use a tbl (pronounced "tibble", I guess it sounds cooler than table). A tibble is essentially a two-dimensional array whose columns can be a variety of data types. We could have a column of characters followed by a column of doubles.
+
+To practice with tibbles let's use our data from Lesson 1 to save some time.
+```{r echo=TRUE}
+players <- c("Ray Allen", "Gary Payton", "Shawn Kemp", "Mitch Richmond", "Rick Barry", "Oscar Robertson", "Hakeem Olajuwon", "Vince Carter", "Moses Malone", "Patrick Ewing")
+fgm <-c(804, 571, 470, 710, 698, 737, 498, 373, 215, 552)
+fga<-c(1596,1341,1033,1617,1381,1416,1112,886,442,1061)
+tpm <- c(401, 118, 63, 236, 186, 87, 126, 81, 0, 2)
+tpa <- c(877, 328, 270, 657, 480, 282, 342, 243, 2, 6)
+ftm <- c(362, 278, 397, 720, 447, 359, 250, 201, 92, 208)
+fta <- c(390, 348, 477, 837, 498, 491, 280, 240, 131, 586)
+```
+To create the tibble we do the following:
+```{r echo=TRUE}
+nba_legends_data<-tibble(
+  Players=players,
+  FGM=fgm,
+  FGA=fga,
+  TPM=tpm,
+  TPA=tpa,
+  FTM=ftm,
+  FTA=fta
+)
+```
+We use the function tibble() to create nba_legends_data. Within the parantheses, we have several expressions with equal signswith a character string on the left equaling the vector on the right. The character string sets the column heading followed by the values that correspond with the heading. It's generally better to have one expression per line to help differentiate between data better as well as make debugging easier when we need to, it's overall more organized. Now let's run nba_legends_data and see if we have a tibble.
+```{r echo=TRUE}
+nba_legends_data
+```
+Like we did in lesson 1, we can subset within a tibble and get specific data by specifying the tibble name and the heading we want.
+```{r echo=TRUE}
+quantile(nba_legends_data[["FTM"]])
+```
+
+##Loading Data Into R
+You might have seen but it was a relatively tedious process to enter stats for players. Now imagine doing that thousands of player, of course we would never manually enter a ton of rows of data. Lucky for us we can find data often in Excel files and R makes it easy to load all Excel files into R as tiblles, we will be using the **read_csv()** command as most of the excel files we will use will be csv and avoids the need to load extra libraries. Let's create a tibble from an Excel file using the nba_history csv file. Your file location will be different from mine depending on where you have your datasets, write the location of wherever your dataset is into the read_csv().
+
+```{r echo=TRUE}
+nba_history <- read_csv(file="C:/Users/ankit/OneDrive/Desktop/Robotics Scouting/Data Sets/nba_history.csv")
+nba_history
+```
+Take note of the doubles, integers and characters. From my experience, I would spend tons of time trying to figure out why I couldn't manipulate data in R once it was loaded into the tibble because the data I was trying to manipulate was being read as characters. If you have numbers being read as characters it easiest to just change the formatting in the actual Excel file.
+
+##Plotting and Visualization
+Plotting helps us study the distribution of the individual columns and also study relationships between variables. For example, is a player's field goal percentage predictive of their three point percentage?
+
+The graphics we produce are created from the ggplot2 library, which is package that is a part of the tidyverse. Essentially, ggplot2 layers different graphics and adds various features over each other. More info on ggplot2 can be found here https://ggplot2.tidyverse.org/. For now we will stick to more basic plotting and will get to more advanced stuff later.
+
+###Histograms###
+A histogram is a plot that lets you discover, and show, the underlying frequency distribution (shape) of a set of continuous data. Let's make a histogram for Three Point Percentage (TPP).
+```{r echo=TRUE}
+ggplot(data = nba_history) +
+  geom_histogram(mapping = aes(x = TPP), bins =20 )
+```
+
+The part of code, **ggplot(data = nba_history)** tells R to generate a coordinate system which can have more layers added over it. It tells R that the data we want to plot from is coming from our nba_history tibble. The next part of the code,**+ geom_histogram(mapping = aes(TPP), bins = 20)** adds a layer to the plot with the layer type being a histogram as specified by geom_histogram. The mapping sets the way in which each variable in our set of data is mapped to the visual parts of the histogram which is the aesthetics. Because we are doing a histogram, we only have to specify the X axis to R since the Y axis will automatically be counted. Once again we split it over two lines to reduce clutter, it is also important that you have the + sign when splitting it up.
+The bins determine the amount of intervals we will have for all the values to fall into. The more bins, the more accurate the the histogram will look.
+
+
+```{r echo=TRUE}
+ggplot(data = nba_history) +
+  geom_histogram(mapping = aes(x = TPP), bins =75 )
+```
+
+
+If we wanted we could also make a density histogram where the total area under the histogram would always be equal to 1
+ 
+```{r echo=TRUE}
+ ggplot(data = nba_history) + 
+  geom_histogram(mapping = aes(x = TPP, y = ..density..), bins = 60)
+```
+
+The syntax is something to get used to and becomes easy with practice. Try making histograms yourself with varying bin widths for the other categories and observe how distributions change with different bin widths.
+
+
+
+###Bivariate Visualization###
+One variable visualization is pretty cool but relationships between two variables or more is often cooler. R can compare variables visually in a simple way to observe relationships between variables.
+
+We can make a scatterplot in R with code very similar to the chunk we used to generate the histograms. Lets observe Field Goal Percentage and Free Throw Percentage.
+
+```{r echo=TRUE}
+ggplot(data = nba_history) + 
+  geom_point(mapping = aes(x = FGP, y = FTP))
+```
+
+
+The syntax here is relatively the same but because we want a scatterplot we instead use **geom_point()**. We also want two variables so we added the comma and then y=FTP to graph the second axis. One shortcoming here is that we dont see the density of points as it all has the same fill. Would (0,0.5) be one player or one player. We can solve this problem we can use what is known as **alpha-blending** to solve this problem as it changes the transparency of points. If we have more points in a region, the region will appear darker.
+
+```{r echo=TRUE}
+ggplot(data = nba_history) + 
+  geom_point(mapping = aes(x = FGP, y = FTP), alpha=0.08)
+```
+
+
+Let's get even more adanvced by getting the frquency within the scatterplot of certian areas. We can do this with the use of **Heatmaps**. The plot is divided into areas based on bin sizes and the color will respresent the density within a certain area. Once again the higher the bin size the higher the accuracy. 
+
+```{r echo=TRUE}
+ggplot(data = nba_history) + 
+  geom_bin2d(mapping = aes(x = FGP, y = FTP), bins = 150)
+```
+
+
+Once again, the syntax to creating these graphs will come with practice. Try creating various scatterplots and heatplots with the other variables and look at the distributions.
+
+If we also wanted to look at only a specific range of data we could specify it and have limited regions plotted.
+
+```{r echo=TRUE}
+ggplot(data = nba_history) + 
+  geom_point(aes(x = FTA, y = FTP)) +
+  xlim(0, 150)
+```

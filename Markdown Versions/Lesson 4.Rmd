@@ -1,0 +1,154 @@
+---
+title: "Lesson 4"
+author: "Ankith Kodali"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Piping##
+Often we had muliple lines for different temporary tibbles that we modified multiple times. Lucky for us there is an operator that lets us connect multiple functions together known as a pipe which has the notation `%>%`. This operator will forward a value, or the result of an expression, into the next function call/expression. **Don't try to run this code, just try to understand.**
+
+`data1 <- func_1(data)`
+
+`data2 <- func_2(data1)`
+
+`data3 <- func_3(data2)`
+
+We can simplify this code using the pipe operator:
+
+`dat_final <- dat %>% func_1() %>% func_2() %>% func_3()`
+
+The tibble gets "piped" into the first function, which pipes its output to the next function, and so on. You can think of this as your analysis "pipeline." The sequence of analysis flows naturally from left-to-right and puts the emphasis on the actions being carried out by us (i.e. the functions) and the final output rather than a bunch of temporary tibbles that may not be of much interest.
+
+
+Let's start working with some data. I can't tell you why but there is a whole downloadable library of baseball dating from 1871 onwards known as the Lahman Baseball database. Let's install it along with the tidyverse.
+```{r echo=TRUE, eval=FALSE}
+install.packages("Lahman")
+```
+
+
+```{r echo=TRUE}
+library(tidyverse)
+library(Lahman)
+```
+
+We are going to focus on pitching today so lets load the data into a tibble under the name `Pitching`
+
+```{r echo=TRUE}
+Pitching<-as_tibble(Pitching)
+```
+
+For this lesson we will only want to focus on ERA (Earned Run Average  is the mean of earned runs given up by a pitcher per nine innings pitched (i.e. the traditional length of a game). It is determined by dividing the number of earned runs allowed by the number of innings pitched and multiplying by nine.) and also focus on those pitchers who have pitched at least 175 innings. The Lahman pitching dataset does not have Innings Pitched. Instead, it has a column called ``IPouts'', which is the number of outs pitched and whose formula is IPOuts=3×IP.
+
+We will create a new tibble called `pitching` which contains all players who pitched at least 150 innings, played in either the AL or the NL and which contains only the columns corresponding the player, year, team, league, innings pitched, and ERA.
+
+
+```{r echo=TRUE}
+pitching <- 
+   Pitching %>%
+   mutate(IP = IPouts/3) %>% 
+   filter(lgID %in% c('AL', 'NL') & IP >= 175) %>%
+   select(playerID, yearID, lgID, teamID, IP, ERA)
+pitching
+```
+
+**Make sure you understand what has happened here, especially with the pipe operator**
+
+We now have a list of 7,387 players who fit the conditions we specified (At least 175 innings). We can plot the ERA by year to see the overall trend.
+
+```{r echo=TRUE}
+ggplot(data = pitching) + 
+    ylim(0, 9) + 
+    geom_point(mapping = aes(x = yearID, y = ERA), size = 0.7)
+```
+
+Let's now arrange the data by ERA to see who had the lowest ERAs and what time periods they came from.
+
+```{r echo=TRUE}
+arrange(pitching, ERA)
+```
+
+The lowest ERAs belong to Dutch Leonard and the three-fingered Mordecai Brown. To put into perspective just how good these ERAs are we can use Z-Scores to standardize data. Z-Score represents how many standard deviations a value is from the average. While there is no formal function for standardizing it's pretty seamless to do. 
+
+```{r echo=TRUE}
+ standardize <- function(e){
+   mu <- mean(e, na.rm = TRUE)
+   sigma <- sd(e, na.rm = TRUE)
+   return( (e - mu)/sigma )}
+```
+
+The use of `na.rm=TRUE` pretty much that there are no values being calculated right now until they are plugged in from pitching.
+
+```{r echo=TRUE}
+pitching <-
+   pitching %>%
+   mutate(zERA= standardize(ERA)) 
+pitching %>% arrange(zERA)
+```
+
+There is a flaw here, right now we compare all seasons as if they are equal to each other but in reality they are not. Baseball in the early 1900s was nothing like baseball in the modern era. For that reason we will need to standardize each season seperately. To do this, we will have to compute the mean and standard deviation of ERAs within each season.
+
+
+A lot of the time when doing data analysis instead of performing a calculation on the entire data set you will likely want to first split the data into smaller subsets, apply the same calculation on every subset, and then combine the results from each subset. Luckily we have a function that would allow us to do this, the `group_by()` function. For our situation of getting Z-Scores for every year seperately we can now begin to address this.
+
+```{r echo=TRUE}
+pitching <- 
+   pitching %>% 
+   group_by(yearID)
+pitching
+```
+
+Take note of how the data was organized into groups by year with 141 groups for the 141 different seasons.
+
+```{r echo=TRUE}
+pitching_summarize <- 
+   pitching %>% 
+   summarize(mean = mean(ERA), sd = sd(ERA))
+pitching_summarize
+```
+
+The mean and standard deviations are listed only by year instead of all together because we used the group_by() function earlier.
+
+Now let's get the Z-Score by each individual season and see how the data changes.
+
+```{r echo=TRUE}
+pitching <-
+   pitching %>%
+   mutate(zERA_year = standardize(ERA))
+pitching %>% arrange(zERA_year)
+```
+
+Dutch Leonard still has one of the best pitching seasons ever but now we see two of Pedro Martinez's Cy Young winning seasons move into the top 5 because of how amazing the season was compared to everyone else in the time period he played in.
+
+If we want to go back to getting standard deviations and mean for the full dataset and not the specific years, we can just use the `ungroup()` function.
+
+```{r echo=TRUE}
+pitching <- 
+   pitching %>%
+   ungroup()
+pitching %>% summarize(mean = mean(ERA), sd = sd(ERA))
+```
+
+We have only grouped by single variables so far. It may be beneficial to group multiple variables at once. For our situation, we can try to standardize ERA not only within each year but also within each leauge, the American League and National League (There are differences such as the designated hitter which only exists in the AL which makes pitching harder). Let's standardize for these conditions.
+
+```{r echo=TRUE}
+pitching <-
+   pitching %>%
+   group_by(yearID, lgID) %>%
+   mutate(zERA_year_lg = standardize(ERA))
+pitching %>% arrange(zERA_year_lg)
+```
+
+Pedro Martinez played in the American League after the designated hitter was established in 1973 which further amplifies just how good of a pitcher he was, in fact even better than Dutch.
+
+We can graph the average for each season on the graph too with the functions we previously declared as shown below. We can use `geom_line()` to map the average with a line. We will reduce the dot size so that we can see the average ERA line better.
+
+```{r echo=TRUE}
+ggplot(pitching) +
+   geom_point(aes(x = yearID, y = ERA), size = 0.3) +
+   ylim(0, 9) + 
+   geom_line(data = pitching_summarize, mapping = aes(x = yearID, y = mean), col = 'dark blue')
+```
